@@ -5,7 +5,6 @@
 ![Status](https://img.shields.io/badge/status-work%20in%20progress-orange)
 ![Phase](https://img.shields.io/badge/phase-v1%20applied%20ML-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
 
 > When a river is the only road, predicting *when it closes* is the difference between supplies arriving and a community being cut off. In that setting, a forecast without honest uncertainty is worse than no forecast at all.
 
@@ -25,7 +24,6 @@
 - [Roadmap](#roadmap)
 - [Mathematical & Technical Foundations](#mathematical--technical-foundations)
 - [Scope & Responsible Use](#scope--responsible-use)
-- [License](#license)
 - [Citation](#citation)
 - [References](#references)
 
@@ -141,6 +139,8 @@ v2 and v3 are the long view, pursued once the ML foundations are solid.
 
 ## Mathematical & Technical Foundations
 
+These foundations are self-taught — built from open coursework and primary references rather than a formal degree.
+
 **Mathematics.** Numerical linear algebra (least squares as projection, conditioning), probability and statistics (MLE, the bias–variance decomposition, the coverage arguments behind conformal prediction), time series, and regularization.
 
 **Stack.** `Python` · `pandas` · `numpy` · `scikit-learn` · `statsmodels` · `MAPIE` (conformal prediction) · `matplotlib`
@@ -149,17 +149,13 @@ v2 and v3 are the long view, pursued once the ML foundations are solid.
 
 This is a **feasibility study and research prototype**, not a deployed decision system. It investigates whether methods robust to scarcity and regime shift *could* support logistic-sanitary planning with honest uncertainty. It is **not** validated for operational routing of medical supplies or for any clinical or emergency decision. Real-world use would require partnership with domain authorities and field validation.
 
-## License
-
-Released under the MIT License — see [`LICENSE`](LICENSE). *(Update this section and the badge if you intend a different license.)*
-
 ## Citation
 
 If you reference this work, please cite it as:
 
 ```bibtex
 @misc{riverlifelines,
-  author       = {Gabriel Abel},
+  author       = {<Your Name>},
   title        = {River Lifelines: Forecasting Amazon River Navigability under Climate Regime Shift},
   year         = {2026},
   howpublished = {\url{https://github.com/<your-username>/river-lifelines}}
