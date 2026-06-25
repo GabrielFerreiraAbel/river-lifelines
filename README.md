@@ -1,136 +1,178 @@
 # River Lifelines
 
-**Forecasting Amazon river navigability under climate regime shift — with honest, calibrated uncertainty.**
+**Forecasting Amazon river navigability under climate regime shift — with calibrated, distribution-free uncertainty.**
 
-> When a river is the only road, predicting *when it closes* is not a convenience — it is the difference between supplies arriving and a community being cut off. And in that setting, a forecast without honest uncertainty is worse than no forecast at all.
+![Status](https://img.shields.io/badge/status-work%20in%20progress-orange)
+![Phase](https://img.shields.io/badge/phase-v1%20applied%20ML-blue)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
----
-
-## The Problem
-
-Across the *Amazônia Legal*, hundreds of communities are reachable only by river. Medicine, hospital supplies, vaccines, and medical personnel travel by boat — there is no road, no runway. When the water drops below a navigable level, those communities are isolated.
-
-In recent years, climate-driven droughts have pushed Amazon rivers to historic lows, stranding populations at the exact moment that shifting temperatures fuel epidemiological outbreaks (malaria, dengue, respiratory disease). The logistic crisis and the health crisis arrive together, and they reinforce each other.
-
-Conventional forecasting and off-the-shelf machine learning struggle here for three specific reasons:
-
-1. **Regime shift.** The climate's data-generating process is no longer stationary. Models trained on the historical record systematically misjudge the new extremes — the past has partially lost its predictive validity.
-2. **Data scarcity and noise.** Health and logistics data for these regions are sparse, irregular, and noisy.
-3. **Asymmetric cost of error.** A wrong forecast can mean medicine that never arrives. There is little room for "try and see," and a single point estimate ("the river closes in week 6") is, by itself, irresponsible.
-
-This project does not pretend to solve that entire crisis. It isolates the **trigger** — river navigability — and asks whether it can be forecast *honestly*.
+> When a river is the only road, predicting *when it closes* is the difference between supplies arriving and a community being cut off. In that setting, a forecast without honest uncertainty is worse than no forecast at all.
 
 ---
 
-## The Scientific Question (v1)
+## Table of Contents
 
-> Can we forecast, weeks in advance, when a river reach will cross a critical navigability threshold — and express that forecast as a calibrated probability with distribution-free coverage guarantees, rather than a single number?
-
-The emphasis is deliberate. In a setting where the cost of error is severe and asymmetric, **the uncertainty is the product.** "The river closes in week 6" is a guess. "There is an 85% probability the reach drops below the critical level between weeks 5 and 7" is something a planner can act on.
+- [Overview](#overview)
+- [Motivation](#motivation)
+- [Research Question (v1)](#research-question-v1)
+- [Approach](#approach)
+- [Data](#data)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Repository Structure](#repository-structure)
+- [Results](#results)
+- [Roadmap](#roadmap)
+- [Mathematical & Technical Foundations](#mathematical--technical-foundations)
+- [Scope & Responsible Use](#scope--responsible-use)
+- [License](#license)
+- [Citation](#citation)
+- [References](#references)
 
 ---
 
-## Why This Is Hard (and Worth Doing)
+## Overview
 
-The interesting difficulty is not the model — it is the **non-stationarity**. If the future looked like the past, this would be a routine time-series problem. It does not. The scientific spine of v1 is to confront that head-on:
+River Lifelines is an applied machine-learning study that forecasts when a river reach will cross a critical navigability threshold, and expresses that forecast as a **calibrated probability with finite-sample coverage guarantees** rather than a single point estimate.
 
-- Train a model on the pre-shift historical record.
-- Evaluate it on a recent extreme drought it has never seen.
-- **Measure, quantitatively, how and where it fails** — making the regime shift visible rather than assumed.
-- Then evaluate mitigations: recency-weighted training, regime-aware features, and the natural adaptivity of conformal prediction.
+The scope is deliberately lean. The project builds and demonstrates rigorous ML fundamentals — time-series modeling, regularization, time-aware validation, and uncertainty quantification — on a real, high-stakes problem. The full physics-informed (SciML) treatment of the broader *water → isolation → health → logistics* nexus, using PINNs, Neural ODEs, and graph methods, is pursued separately as a later research horizon (see the [SciML lab]()). **This repository is the foundation on which that work builds.**
 
-This turns "ML fails under climate change" from a slogan into a measured result — which is the kind of honest, falsifiable claim that distinguishes research from a demo.
+## Motivation
 
----
+Across the *Amazônia Legal*, hundreds of communities are reachable only by river. Medicine, supplies, and medical personnel travel by boat; there is no road. When the water drops below a navigable level, those communities are cut off — and recent climate-driven droughts have pushed Amazon rivers to historic lows exactly when health crises tend to spike.
+
+Conventional forecasting struggles here for three specific reasons:
+
+1. **Regime shift.** The climate's data-generating process is no longer stationary; the historical record has partly lost its predictive validity.
+2. **Scarce, noisy data.** Gauge coverage is sparse and observations are irregular.
+3. **Asymmetric cost of error.** A wrong forecast can mean medicine that never arrives, so a single point estimate is irresponsible.
+
+This project isolates the **trigger** — river navigability — and asks whether it can be forecast honestly.
+
+## Research Question (v1)
+
+> Can we forecast, weeks ahead, when a river reach will cross a critical navigability threshold — and express it as a calibrated probability with distribution-free coverage guarantees, rather than a single number?
+
+Where error is costly and asymmetric, the uncertainty *is* the product. "The river closes in week 6" is a guess. "85% probability of dropping below the critical level between weeks 5 and 7" is something a planner can act on.
 
 ## Approach
 
-The method builds in steps, each one a baseline the next must beat.
+Each step is a baseline the next must beat.
 
-**1. Naive baselines.** Persistence and seasonal-naive forecasts. Any learned model must demonstrably outperform these, or it earns nothing.
+1. **Naive baselines** — persistence and seasonal-naive forecasts. Any learned model must outperform these.
+2. **Regularized regression** — engineered features (lagged stage, cumulative upstream rainfall, ENSO index) with ridge and lasso; regression framed as projection, regularization to control the bias–variance trade-off under data scarcity.
+3. **Calibrated uncertainty (conformal prediction)** — distribution-free prediction intervals with finite-sample coverage guarantees, robust precisely because they do not assume the future is distributed like the past.
+4. **Honest validation** — time-aware, strictly out-of-sample splits. Reported metrics include error against baselines, empirical interval coverage, and sharpness.
 
-**2. Regularized regression.** Engineered hydro-climatic features — lagged river stage, cumulative upstream rainfall, and the ENSO (El Niño–Southern Oscillation) index, which is strongly correlated with Amazon water levels — fed into ridge/lasso regression. Regression here is, at its core, a projection onto a feature subspace; the regularization controls the bias–variance trade-off under scarce, noisy data.
-
-**3. Calibrated uncertainty via conformal prediction.** Instead of trusting a model's nominal confidence, conformal prediction wraps any forecaster to produce prediction intervals with finite-sample, distribution-free coverage guarantees. This is the layer that makes the output trustworthy under the asymmetric-cost setting — and it is robust precisely because it does not assume the future is distributed like the past.
-
-**4. Honest validation.** Strictly out-of-sample, time-aware splits (no leakage from future to past). Reported metrics include forecast error against baselines, **empirical coverage of the prediction intervals** (do the 85% intervals actually contain the truth 85% of the time?), and interval sharpness.
-
----
-
-## Roadmap
-
-This is designed to start small and grow. Each stage is a complete, self-contained artifact.
-
-| Stage | Scope | New ingredient |
-|---|---|---|
-| **v1 — Single reach** | One gauging station; forecast navigability threshold crossing with calibrated intervals | Conformal prediction; the regime-shift experiment |
-| **v2 — River network** | Multiple stations along a basin; a river network is naturally a directed graph (upstream → downstream) | Spatial structure; graph-based propagation of state and uncertainty |
-| **v3 — The nexus (research horizon)** | Couple navigability → isolation → overlaid health signals → logistics, as a multi-year proof of concept | Data fusion across hydrology, health (DATASUS/SIVEP), and logistics |
-
-v2 and v3 are the research trajectory, not promises of v1.
-
----
+**Scientific spine:** train on the pre-shift record, test on a recent extreme drought, and *measure* where and how the model fails — making the regime shift visible rather than assumed — then evaluate mitigations.
 
 ## Data
 
-All v1 data is open and Brazilian.
+All sources are open and Brazilian or public-domain.
 
-- **River stage, discharge, and rainfall — ANA HidroWeb / SNIRH.** Historical daily series across a national network of fluviometric and pluviometric stations, downloadable as CSV and accessible through a public web service (station code, date range, data type, raw vs. consistent). The Manaus stage record extends back to the early twentieth century — a century-plus series, ideal for studying regime change.
-- **ENSO indices — NOAA Climate Prediction Center.** Exogenous driver of Amazon hydrology.
-- **Health and logistics data (DATASUS / SIVEP, fluvial logistics)** — reserved for v3.
+| Source | Provider | Role |
+|---|---|---|
+| Historical stage, discharge, rainfall | ANA HidroWeb / SNIRH | Primary signal (national gauge network; the Manaus stage record spans over a century) |
+| ENSO indices | NOAA CPC | Exogenous climate driver |
+| Health & logistics (DATASUS / SIVEP) | Ministério da Saúde | Reserved for v3 |
 
-> Note: ANA also mirrors station series in an open data repository, which is convenient for programmatic, reproducible ingestion.
+Stage, discharge, and rainfall series are downloadable as CSV and via the SNIRH public web service.
 
----
+## Installation
 
-## Mathematical Foundations
+```bash
+git clone https://github.com/<your-username>/river-lifelines.git
+cd river-lifelines
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-The project is small in scope but rests on real foundations:
+Requires Python 3.10+.
 
-- **Linear algebra** — least-squares regression as orthogonal projection; conditioning and the geometry of the feature space.
-- **Probability & statistics** — maximum likelihood, the bias–variance trade-off, and the exchangeability/coverage arguments underlying conformal prediction.
-- **Time-series & regularization** — feature lags, non-stationarity, and ridge/lasso as controlled-complexity estimators.
+## Usage
 
----
+```bash
+# 1. Ingest and assemble the dataset for a single gauging station
+python -m src.data.build_dataset --station <station_id>
 
-## Tech Stack
+# 2. Fit baselines and the regularized model with conformal intervals
+python -m src.models.train --config configs/v1.yaml
 
-`Python` · `pandas` · `numpy` · `scikit-learn` · `statsmodels` · `MAPIE` (conformal prediction) · `matplotlib`
+# 3. Backtest on the held-out drought period; report coverage and sharpness
+python -m src.evaluation.backtest --config configs/v1.yaml
+```
 
----
+The entry points above are representative; adjust them to match the modules in `src/`.
 
-## Repository Structure (planned)
+## Repository Structure
 
 ```
 river-lifelines/
-├── data/                # raw + processed (gitignored; fetch scripts versioned)
-├── notebooks/           # exploratory analysis, regime-shift experiment
+├── data/
+│   ├── raw/              # downloaded ANA / NOAA series (gitignored)
+│   └── processed/        # cleaned, feature-ready tables
+├── notebooks/            # exploration, diagnostics, figures
 ├── src/
-│   ├── ingest/          # ANA HidroWeb fetch + cleaning pipeline
-│   ├── features/        # lagged stage, cumulative rainfall, ENSO alignment
-│   ├── models/          # baselines, regularized regression, conformal wrapper
-│   └── eval/            # time-aware splits, coverage + sharpness metrics
-├── results/             # figures, validation tables, write-up
+│   ├── data/             # ingestion from ANA HidroWeb, NOAA CPC
+│   ├── features/         # lagged stage, cumulative rainfall, ENSO
+│   ├── models/           # baselines + regularized regression
+│   ├── conformal/        # MAPIE wrappers for prediction intervals
+│   └── evaluation/       # coverage, sharpness, time-aware backtesting
+├── configs/              # experiment configuration
+├── tests/
+├── requirements.txt
 └── README.md
 ```
 
----
+## Results
+
+> _To be reported._ Metrics will include error relative to the naive baselines, empirical coverage of the conformal intervals against the nominal level, and interval sharpness — all evaluated out-of-sample on a recent drought period.
+
+## Roadmap
+
+| Stage | Scope | Phase |
+|---|---|---|
+| **v1 — Single reach** | One gauging station; navigability forecast with calibrated intervals | Applied ML — *this repo, active* |
+| **v2 — River network** | Multiple stations; the network as a directed graph | Transition toward SciML |
+| **v3 — The nexus** | Couple navigability → isolation → health → logistics | Future SciML research horizon |
+
+v2 and v3 are the long view, pursued once the ML foundations are solid.
+
+## Mathematical & Technical Foundations
+
+**Mathematics.** Numerical linear algebra (least squares as projection, conditioning), probability and statistics (MLE, the bias–variance decomposition, the coverage arguments behind conformal prediction), time series, and regularization.
+
+**Stack.** `Python` · `pandas` · `numpy` · `scikit-learn` · `statsmodels` · `MAPIE` (conformal prediction) · `matplotlib`
 
 ## Scope & Responsible Use
 
-This is a **feasibility study and research prototype**, not a deployed decision system. It is intended to investigate whether methods robust to data scarcity and regime shift *could* support logistic-sanitary planning — and to do so with honest uncertainty. It is not validated for, and must not be used as, an operational tool for routing medical supplies or making clinical or emergency decisions. Real-world impact would require partnership with domain authorities, field validation, and institutional oversight.
+This is a **feasibility study and research prototype**, not a deployed decision system. It investigates whether methods robust to scarcity and regime shift *could* support logistic-sanitary planning with honest uncertainty. It is **not** validated for operational routing of medical supplies or for any clinical or emergency decision. Real-world use would require partnership with domain authorities and field validation.
 
----
+## License
+
+Released under the MIT License — see [`LICENSE`](LICENSE). *(Update this section and the badge if you intend a different license.)*
+
+## Citation
+
+If you reference this work, please cite it as:
+
+```bibtex
+@misc{riverlifelines,
+  author       = {Gabriel Abel},
+  title        = {River Lifelines: Forecasting Amazon River Navigability under Climate Regime Shift},
+  year         = {2026},
+  howpublished = {\url{https://github.com/<your-username>/river-lifelines}}
+}
+```
 
 ## References
 
-- Agência Nacional de Águas e Saneamento Básico (ANA) — HidroWeb / SNIRH (open hydrometeorological series).
-- A. Angelopoulos & S. Bates — *A Gentle Introduction to Conformal Prediction and Distribution-Free Uncertainty Quantification* (2021).
-- V. Vovk, A. Gammerman & G. Shafer — *Algorithmic Learning in a Random World* (conformal prediction foundations).
-- Literature on Amazon hydroclimate variability and its coupling to ENSO.
+- ANA — Agência Nacional de Águas e Saneamento Básico. *HidroWeb / SNIRH.* <https://www.snirh.gov.br/hidroweb>
+- NOAA Climate Prediction Center. *ENSO Monitoring & Indices.* <https://www.cpc.ncep.noaa.gov>
+- Angelopoulos, A. N., & Bates, S. *A Gentle Introduction to Conformal Prediction and Distribution-Free Uncertainty Quantification.*
+- Taquet, V., et al. *MAPIE: Model-Agnostic Prediction Interval Estimator.* <https://github.com/scikit-learn-contrib/MAPIE>
 
 ---
 
-## Status
-
-Work in progress — **v1**.
+*Status: work in progress — **v1** (applied ML foundation).*
