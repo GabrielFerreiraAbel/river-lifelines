@@ -155,7 +155,7 @@ If you reference this work, please cite it as:
 
 ```bibtex
 @misc{riverlifelines,
-  author       = {<Your Name>},
+  author       = {Gabriel Abel},
   title        = {River Lifelines: Forecasting Amazon River Navigability under Climate Regime Shift},
   year         = {2026},
   howpublished = {\url{https://github.com/<your-username>/river-lifelines}}
